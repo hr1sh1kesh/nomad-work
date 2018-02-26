@@ -10,20 +10,17 @@ vm_nodes = {            # EDIT to specify VM node names, and their private IP (v
 }
 # EDIT or specify ENV variable to define OS-Type (see `vm_conf` below)
 ostype = ENV['KUBE_OSTYPE'] || 'ubuntu16'
-#ostype = ENV['KUBE_OSTYPE'] || 'centos7'
 
 # VM config, format: <type-label> => [ 0:vagrant-box, 1:vm-net-iface, 2:vm-disk-controller, 3:vm-start-port, 4:vm-drives-map ]
 # see https://atlas.hashicorp.com/search? for more VM images (ie. "box-names")
 vm_conf = {
    'ubuntu16' => [ 'ubuntu/xenial64', 'enp0s8', 'SCSI', 2, { "sdc" => 40*1024, "sdd" => 30*1024 } ],
-   'centos7'  => [ 'centos/7', 'eth1', 'IDE', 1, { "sdb" => 20*1024 } ],
 }
 
 # (internal variables)
 mybox, myvmif, mycntrl, myport, extra_disks = vm_conf[ostype]
 mystorage = "/dev/"+extra_disks.keys().join(",/dev/")
 nomad_server_ip = vm_nodes["nomad-sv"]
-#etcd_server_ip = vm_nodes["etcd"]
 
 etc_hosts = ""
 vm_nodes.each do |host,ip|
@@ -254,10 +251,9 @@ $install_portworx =<<SCRIPT
 
 hostname -I | grep -wq #{nomad_server_ip}
 if [ $? -eq 0 ]; then
-
+rm -f /tmp/portworx.nomad
 curl -o /tmp/portworx.nomad https://raw.githubusercontent.com/portworx/px-docs/gh-pages/scheduler/nomad/portworx.nomad
-sed -i -e 's/\beth0\b/enp0s8/' \
-     -e 's`http://127.0.0.1:8500`http://#{nomad_server_ip}:8500`' /tmp/portworx.nomad
+sed -i -e 's/\beth0\b/enp0s8/' /tmp/portworx.nomad
 nomad run -address=http://#{nomad_server_ip}:4646 /tmp/portworx.nomad
 
 fi
